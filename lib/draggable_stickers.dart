@@ -8,6 +8,7 @@ class DraggableStickers extends StatefulWidget {
 
   // ignore: use_key_in_widget_constructors
   const DraggableStickers({this.stickerList});
+
   @override
   State<DraggableStickers> createState() => _DraggableStickersState();
 }
@@ -19,6 +20,7 @@ class _DraggableStickersState extends State<DraggableStickers> {
   final _initialStickerScale = 5.0;
 
   List<Sticker> stickers = [];
+
   @override
   void initState() {
     setState(() {
@@ -40,7 +42,6 @@ class _DraggableStickersState extends State<DraggableStickers> {
                 ),
               ),
               for (final sticker in stickers)
-
                 // Main widget that handles all features like rotate, resize, edit, delete, layer update etc.
                 DraggableResizable(
                   key:
@@ -79,23 +80,27 @@ class _DraggableStickersState extends State<DraggableStickers> {
 
                   // Size of the sticker
                   size: sticker.isText == true
-                      ? Size(64 * _initialStickerScale / 3,
-                          64 * _initialStickerScale / 3)
+                      ? Size(
+                          sticker.width * _initialStickerScale / 3,
+                          sticker.height * _initialStickerScale / 3,
+                        )
                       : Size(
-                          64 * _initialStickerScale, 64 * _initialStickerScale),
+                          sticker.width * _initialStickerScale,
+                          sticker.height * _initialStickerScale,
+                         ),
 
                   // Constraints of the sticker
                   constraints: sticker.isText == true
                       ? BoxConstraints.tight(
                           Size(
-                            64 * _initialStickerScale / 3,
-                            64 * _initialStickerScale / 3,
+                            sticker.width * _initialStickerScale / 3,
+                            sticker.height * _initialStickerScale / 3,
                           ),
                         )
                       : BoxConstraints.tight(
                           Size(
-                            64 * _initialStickerScale,
-                            64 * _initialStickerScale,
+                            sticker.width * _initialStickerScale,
+                            sticker.height * _initialStickerScale,
                           ),
                         ),
 

@@ -100,12 +100,26 @@ class StickerViewState extends State<StickerView> {
 class Sticker extends StatefulWidget {
   // you can pass any widget to it as child
   Widget? child;
+
   // set isText to true if passed Text widget as child
   bool? isText = false;
+
   // every sticker must be assigned with unique id
   String id;
-  Sticker({Key? key, this.child, this.isText, required this.id})
+
+  double width, height;
+  bool? movable = false;
+
+  Sticker(
+      {Key? key,
+      this.child,
+      this.isText,
+      this.movable,
+      required this.id,
+      required this.width,
+      required this.height})
       : super(key: key);
+
   @override
   _StickerState createState() => _StickerState();
 }

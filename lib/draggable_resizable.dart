@@ -47,7 +47,8 @@ class DraggableResizable extends StatefulWidget {
     this.onEdit,
     this.onDelete,
     this.canTransform = false,
-  })  : constraints = constraints ?? BoxConstraints.loose(Size.infinite),
+  })
+      : constraints = constraints ?? BoxConstraints.loose(Size.infinite),
         super(key: key);
 
   /// The child which will be draggable/resizable.
@@ -86,6 +87,8 @@ class _DraggableResizableState extends State<DraggableResizable> {
   late double baseAngle;
 
   bool get isTouchInputSupported => true;
+  double scaleFactor = 1.0;
+  double baseScaleFactor = 1.0;
 
   Offset position = Offset.zero;
 
@@ -106,9 +109,9 @@ class _DraggableResizableState extends State<DraggableResizable> {
       builder: (context, constraints) {
         position = position == Offset.zero
             ? Offset(
-                constraints.maxWidth / 2 - (size.width / 2),
-                constraints.maxHeight / 2 - (size.height / 2),
-              )
+          constraints.maxWidth / 2 - (size.width / 2),
+          constraints.maxHeight / 2 - (size.height / 2),
+        )
             : position;
 
         final normalizedWidth = size.width;
@@ -220,6 +223,26 @@ class _DraggableResizableState extends State<DraggableResizable> {
           onUpdate();
         }
 
+        void onPinchZoom(ScaleUpdateDetails details) {
+          final mid = (details.focalPoint.dx + details.focalPoint.dy) / 2;
+          final newHeight = math.max(size.height + (2 * mid), 0.0);
+          final newWidth = math.max(size.width + (2 * mid), 0.0);
+          final updatedSize = Size(newWidth, newHeight);
+
+          // if (!widget.constraints.isSatisfiedBy(updatedSize)) return;
+
+          final updatedPosition = Offset(position.dx - mid, position.dy - mid);
+          // minimum size of the sticker should be Size(50,50)
+          if (updatedSize > const Size(50, 50)) {
+            setState(() {
+              size = updatedSize;
+              position = updatedPosition;
+            });
+          }
+
+          onUpdate();
+        }
+
         final decoratedChild = Container(
           key: const Key('draggableResizable_child_container'),
           alignment: Alignment.center,
@@ -270,6 +293,7 @@ class _DraggableResizableState extends State<DraggableResizable> {
         final bottomRightCorner = _ResizePoint(
           key: const Key('draggableResizable_bottomRight_resizePoint'),
           type: _ResizePointType.bottomRight,
+          onScale: null,
           onDrag: onDragBottomRight,
           iconData: Icons.zoom_out_map,
         );
@@ -296,7 +320,8 @@ class _DraggableResizableState extends State<DraggableResizable> {
           key: const Key('draggableResizable_rotate_gestureDetector'),
           onScaleStart: (details) {
             final offsetFromCenter = details.localFocalPoint - center;
-            setState(() => angleDelta = baseAngle -
+            setState(() =>
+            angleDelta = baseAngle -
                 offsetFromCenter.direction -
                 _floatingActionDiameter);
           },
@@ -304,7 +329,7 @@ class _DraggableResizableState extends State<DraggableResizable> {
             final offsetFromCenter = details.localFocalPoint - center;
 
             setState(
-              () {
+                  () {
                 angle = offsetFromCenter.direction + angleDelta * 0.5;
               },
             );
@@ -336,6 +361,7 @@ class _DraggableResizableState extends State<DraggableResizable> {
                 child: _DraggablePoint(
                   key: const Key('draggableResizable_child_draggablePoint'),
                   onTap: onUpdate,
+                  zoom: onPinchZoom,
                   onDrag: (d) {
                     setState(() {
                       position = Offset(position.dx + d.dx, position.dy + d.dy);
@@ -426,12 +452,11 @@ const _cursorLookup = <_ResizePointType, MouseCursor>{
 };
 
 class _ResizePoint extends StatelessWidget {
-  const _ResizePoint(
-      {Key? key,
-      required this.onDrag,
-      required this.type,
-      this.onScale,
-      this.iconData})
+  const _ResizePoint({Key? key,
+    required this.onDrag,
+    required this.type,
+    this.onScale,
+    this.iconData})
       : super(key: key);
 
   final ValueSetter<Offset> onDrag;
@@ -465,10 +490,10 @@ class _ResizePoint extends StatelessWidget {
             ),
             child: iconData != null
                 ? Icon(
-                    iconData,
-                    size: 12,
-                    color: Colors.blue,
-                  )
+              iconData,
+              size: 12,
+              color: Colors.blue,
+            )
                 : Container(),
           ),
         ),
@@ -484,6 +509,7 @@ class _DraggablePoint extends StatefulWidget {
     Key? key,
     required this.child,
     this.onDrag,
+    this.zoom,
     this.onScale,
     this.onRotate,
     this.onTap,
@@ -493,6 +519,7 @@ class _DraggablePoint extends StatefulWidget {
   final Widget child;
   final _PositionMode mode;
   final ValueSetter<Offset>? onDrag;
+  final ValueSetter<ScaleUpdateDetails>? zoom;
   final ValueSetter<double>? onScale;
   final ValueSetter<double>? onRotate;
   final VoidCallback? onTap;
@@ -507,7 +534,6 @@ class _DraggablePointState extends State<_DraggablePoint> {
   var scaleFactor = 1.0;
   var baseAngle = 0.0;
   var angle = 0.0;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -522,6 +548,7 @@ class _DraggablePointState extends State<_DraggablePoint> {
             break;
         }
         if (details.pointerCount > 1) {
+          baseScaleFactor = scaleFactor;
           baseAngle = angle;
           baseScaleFactor = scaleFactor;
           widget.onRotate?.call(baseAngle);
@@ -529,25 +556,25 @@ class _DraggablePointState extends State<_DraggablePoint> {
         }
       },
       onScaleUpdate: (details) {
+        Offset offset;
         switch (widget.mode) {
           case _PositionMode.global:
             final dx = details.focalPoint.dx - initPoint.dx;
             final dy = details.focalPoint.dy - initPoint.dy;
             initPoint = details.focalPoint;
+            offset = Offset(dx, dy);
             widget.onDrag?.call(Offset(dx, dy));
             break;
           case _PositionMode.local:
             final dx = details.localFocalPoint.dx - initPoint.dx;
             final dy = details.localFocalPoint.dy - initPoint.dy;
             initPoint = details.localFocalPoint;
+            offset = Offset(dx, dy);
             widget.onDrag?.call(Offset(dx, dy));
             break;
         }
         if (details.pointerCount > 1) {
-          scaleFactor = baseScaleFactor * details.scale;
-          widget.onScale?.call(scaleFactor);
-          angle = baseAngle + details.rotation;
-          widget.onRotate?.call(angle);
+          widget.zoom!(details);
         }
       },
       child: widget.child,

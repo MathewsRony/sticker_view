@@ -39,8 +39,11 @@ class _HomePageState extends State<HomePage> {
                 await StickerView.saveAsUint8List(ImageQuality.high);
             if (imageData != null) {
               var imageName = DateTime.now().microsecondsSinceEpoch.toString();
-              var appDocDir = await getApplicationDocumentsDirectory();
-              String imagePath = appDocDir.path + imageName + '.png';
+
+              var appDocDir = (await getExternalStorageDirectories(
+                      type: StorageDirectory.downloads))
+                  ?.first;
+              String imagePath = "${appDocDir?.path}" + imageName + '.png';
               File imageFile = File(imagePath);
               imageFile.writeAsBytesSync(imageData);
               // ignore: avoid_print
@@ -51,18 +54,27 @@ class _HomePageState extends State<HomePage> {
         body: Center(
           // Sticker Editor View
           child: StickerView(
+            width: 300,
+            height: 500,
             // List of Stickers
             stickerList: [
               Sticker(
                 child: Image.network(
-                    "https://images.unsplash.com/photo-1640113292801-785c4c678e1e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=736&q=80"),
+                  "https://images.unsplash.com/photo-1640113292801-785c4c678e1e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=736&q=80",
+                  fit: BoxFit.cover,
+                ),
                 // must have unique id for every Sticker
                 id: "uniqueId_111",
+                width: 64,
+                height: 64,
+                movable: false,
               ),
               Sticker(
                 child: const Text("Hello"),
                 id: "uniqueId_222",
                 isText: true,
+                width: 64,
+                height: 64,
               ),
             ],
           ),
